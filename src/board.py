@@ -183,7 +183,8 @@ class Board:
         else:
             async with self.lock:
                 self._turn_down_card(player_id)
-                self._cleanup_previous_cards(player_id)
+                if player_state.matched:
+                    self._cleanup_previous_cards(player_id)
 
             result = await self._flip_first_card(player_id, row, col)
             self._debug_print_board_state()
@@ -305,7 +306,7 @@ class Board:
             # Rule 2-E: No match
             print(f"   ✗ Rule 2-E: No match {first_card.label}!={card.label}")
             first_card.controller = None
-            player_state.controlled_cards = []
+            player_state.controlled_cards = [first_pos, (row, col)]
             player_state.matched = False
             self._notify_change()
 
