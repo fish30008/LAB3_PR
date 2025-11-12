@@ -1,14 +1,11 @@
-"""
-Simulation of Memory Scramble game.
-"""
+
 import asyncio
 import random
-from .board import Board
+from board import Board
 
 
 async def simulation_main() -> None:
-    """Simulate a Memory Scramble game."""
-    filename = 'boards/perfect.txt'
+    filename = '../boards/perfect.txt'
     board: Board = await Board.parse_from_file(filename)
     size = 3
     players = 4
@@ -35,7 +32,6 @@ async def simulation_main() -> None:
 
 
 async def player(board: Board, player_number: int, size: int, tries: int, max_delay: float) -> None:
-    """Simulate one player."""
     player_id = f'player_{player_number}'
     print(f"\n▶ {player_id} started")
 
@@ -65,12 +61,10 @@ async def player(board: Board, player_number: int, size: int, tries: int, max_de
 
 
 def random_int(max_val: int) -> int:
-    """Random int in [0, max_val)."""
     return random.randint(0, max_val - 1)
 
 
 async def timeout(milliseconds: float) -> None:
-    """Wait for duration in ms."""
     await asyncio.sleep(milliseconds / 1000.0)
 
 

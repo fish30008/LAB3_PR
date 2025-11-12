@@ -16,6 +16,8 @@ class Card:
 @dataclass
 class PlayerState:
     controlled_cards: List[Tuple[int, int]] = field(default_factory=list)
+    previous_controled_cards: List[Tuple[int, int]] = field(default_factory=list)
+
     matched: bool = False
 
 
@@ -229,7 +231,10 @@ class Board:
             async with self.lock:
                 player_state = self._get_player_state(player_id)
                 card = self.grid[row][col]
-
+                controled_cards = player_state.previous_controled_cards
+                for previous_card in controled_cards:
+                    previous_card.face_up = False
+                    #card.controller = None
                 print(f'player_state -> {player_state} - id < {player_id}')
                 # Rule 1-A: Empty
 
@@ -306,7 +311,9 @@ class Board:
             # Rule 2-E: No match
             print(f"   ✗ Rule 2-E: No match {first_card.label}!={card.label}")
             first_card.controller = None
-            player_state.controlled_cards = [first_pos, (row, col)]
+            card.controller = None
+            player_state.previous_controled_cards = [first_card, card]
+            player_state.controlled_cards = []
             player_state.matched = False
             self._notify_change()
 
