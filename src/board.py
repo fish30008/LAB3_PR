@@ -4,7 +4,16 @@ import random
 from typing import Callable, List, Tuple, Awaitable, Dict, Optional
 from dataclasses import dataclass, field
 
-
+'''
+- label is a non-empty string
+- face_up is a boolean
+- removed is a boolean
+- if removed == True:
+     card must not be face_up
+     controller must be None
+-controller is a string -> means who controll the card \
+needed for verifying rules
+'''
 #ADT
 @dataclass
 class Card:
@@ -15,6 +24,14 @@ class Card:
 
 
 #ADT
+'''
+- controlled_cards is a list of (row, col) tuples
+needed for rools and for matching
+- previous_controled_cards is a list of (row, col) tuples
+needed for that case when not match but cards should be face up
+- matched is boolean
+'''
+
 @dataclass
 class PlayerState:
     controlled_cards: List[Tuple[int, int]] = field(default_factory=list)
@@ -23,6 +40,16 @@ class PlayerState:
     matched: bool = False
 
 
+'''
+- rows > 0, cols > 0
+- len(grid) == rows
+- len(grid[r]) == cols for every r
+- every grid cell contains a Card
+- if a Card has controller != None, that controller exists in players dict
+- if a Card is removed:
+     card must not be face_up
+     card.controller must be None
+'''
 #ADT
 class Board:
     """
@@ -43,6 +70,8 @@ class Board:
         self.players: Dict[str, PlayerState] = {}
         self.lock = asyncio.Lock()
         self.version = 0
+
+        self._checkRep()
 
 
     # private methods
@@ -71,6 +100,30 @@ class Board:
                 if not self.grid[r][c].removed:
                     count += 1
         return count
+
+    def _checkRep(self):
+        assert self.rows > 0 and self.cols > 0
+        assert len(self.grid) == self.rows
+
+        for row in self.grid:
+            assert len(row) == self.cols
+
+        for r in range(self.rows):
+            for c in range(self.cols):
+                card = self.grid[r][c]
+                assert isinstance(card.label, str)
+                assert card.label != ""
+                assert isinstance(card.face_up, bool)
+                assert isinstance(card.removed, bool)
+                assert isinstance(card.controller, (str, type(None)))
+
+                if card.removed:
+                    assert not card.face_up
+                    assert card.controller is None
+
+                # controller must exist
+                if card.controller is not None:
+                    assert card.controller in self.players
 
     def _renew_board(self) -> None:
         print("\n🔄 Board renewal: Resetting board")
@@ -193,6 +246,7 @@ class Board:
 
             result = await self._flip_first_card(player_id, row, col)
             self._debug_print_board_state()
+            self._checkRep()
             return result
 
 
@@ -212,6 +266,7 @@ class Board:
                 card.face_up = False
                 card.controller = None
                 self._notify_change()
+        self._checkRep()
 
     def _turn_down_card(self, player_id : str) -> None:
         player_state = self._get_player_state(player_id)
@@ -223,6 +278,7 @@ class Board:
             if not card.removed and card.face_up and card.controller is None:
                 card.face_up = False
                 self._notify_change()
+        self._checkRep()
 
 
     async def _flip_first_card(self, player_id: str, row: int, col: int) -> str:
@@ -328,6 +384,7 @@ class Board:
             player_state.matched = False
             self._notify_change()
 
+        self._checkRep()
         return self._look_internal(player_id)
 
     async def map_cards(self, player_id: str, func: Callable[[str], Awaitable[str]]) -> str:
