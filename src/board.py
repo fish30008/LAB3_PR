@@ -5,6 +5,7 @@ from typing import Callable, List, Tuple, Awaitable, Dict, Optional
 from dataclasses import dataclass, field
 
 
+#ADT
 @dataclass
 class Card:
     label: str
@@ -13,6 +14,7 @@ class Card:
     removed: bool = False
 
 
+#ADT
 @dataclass
 class PlayerState:
     controlled_cards: List[Tuple[int, int]] = field(default_factory=list)
@@ -21,13 +23,13 @@ class PlayerState:
     matched: bool = False
 
 
+#ADT
 class Board:
     """
 -----------
     """
 
     def __init__(self, rows: int, cols: int, cards: List[str]):
-        """Create a new board."""
         assert len(cards) == rows * cols
         assert rows > 0 and cols > 0
 
@@ -43,6 +45,7 @@ class Board:
         self.version = 0
 
 
+    # private methods
     def _initialize_grid(self) -> None:
         self.grid = []
         card_index = 0
@@ -95,9 +98,9 @@ class Board:
             print(f"  {pid[:10]:10} ctrl:{state.controlled_cards}") #prev:{state.previous_cards} match:{state.matched}")
         print("="*60 + "\n")
 
+    #aka single method
     @staticmethod
     async def parse_from_file(filename: str) -> 'Board':
-        """Parse board from file."""
         with open(filename, 'r', encoding='utf-8') as f:
             lines = [line.strip() for line in f.readlines() if line.strip()]
 
@@ -268,7 +271,6 @@ class Board:
         raise ValueError(f"Timeout waiting for card at ({row}, {col})")
 
     def _flip_second_card(self, player_id: str, row: int, col: int) -> str:
-        """Flip second card (Rules 2-A through 2-E). Must be called with lock held."""
         player_state = self._get_player_state(player_id)
         card = self.grid[row][col]
         first_pos = player_state.controlled_cards[0]
@@ -284,6 +286,15 @@ class Board:
             player_state.matched = False
             self._notify_change()
             raise ValueError("Card has been removed")
+        #my rule ->
+        if card.face_up and card.controller == player_id:
+            print(f"   ✗ My rule: Controlled by {card.controller[:10]}")
+            # first_card.controller = None
+            # player_state.controlled_cards = []
+            # player_state.matched = False
+            # self._notify_change()
+            raise ValueError("Card is controlled by another player")
+
 
         # Rule 2-B: Controlled
         if card.face_up and card.controller is not None:
@@ -334,8 +345,8 @@ class Board:
             self._notify_change()
             return self._look_internal(player_id)
 
-    async def watch(self, player_id: str, timeout: float = 60.0) -> str:
-        """Watch for board changes."""
+    async def watch(self, player_id: str, timeout: float = 30.0) -> str:
+        #notify changes trigeres the changing in version
         start_version = self.version
         poll_interval = 0.5
         elapsed = 0.0

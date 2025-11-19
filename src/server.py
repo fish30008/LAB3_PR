@@ -11,7 +11,6 @@ from .commands import look, flip, map_func, watch
 
 
 class WebServer:
-    """HTTP web game server."""
 
     def __init__(self, board: Board, requested_port: int):
 
@@ -75,13 +74,14 @@ class WebServer:
         print(f"server now listening at http://localhost:{self.requested_port}")
         uvicorn.run(
             self.app,
-            host='localhost',
+            host='0.0.0.0',   # bind to all interfaces so container ports are reachable
             port=self.requested_port,
             log_level='warning'
         )
 
     def stop(self) -> None:
         print("server stopped")
+
 
 
 def main() -> None:
